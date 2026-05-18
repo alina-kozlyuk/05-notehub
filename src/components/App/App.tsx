@@ -1,75 +1,51 @@
-import { useEffect, useState } from 'react'
-import SearchBar from '../SearchBar/SearchBar';
-import type { Movie } from '../../types/movie';
-import toast from 'react-hot-toast';
-import { Toaster } from 'react-hot-toast';
-import MovieGrid from '../MovieGrid/MovieGrid';
-import Loader from '../Loader/Loader';
-import ErrorMessage from '../ErrorMessage/ErrorMessage';
-import MovieModal from '../MovieModal/MovieModal';
-import { fetchMovies } from '../../services/movieService';
+import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { fetchNotes } from "../../services/noteService";
+import ErrorMessage from "../ErrorMessage/ErrorMessage";
+import Loader from "../Loader/Loader";
+import css from "./App.module.css";
+import Pagination from "../../Pagination/Pagination";
+import NoteList from "../../NoteList/NoteList";
+import Modal from "../../Modal/Modal";
+
+const PER_PAGE = 12;
 
 export default function App() {
-  const [query, setQuery] = useState('');
-  const [movies, setMovies] = useState<Movie[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(false);
-  const [selectedMovie, setSelectedMovie]= useState<Movie | null>(null)
+  const [page, setPage] = useState(1);
+  const [search, setSearch] = useState("");
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
-  const handleSearch = (newQuery: string) => {
-    setMovies([])
-    setQuery(newQuery);
-  };
+  const { data, isLoading, isError } = useQuery({
+    queryKey: ["notes", page, search],
+    queryFn: () => fetchNotes({ search, page, perPage: PER_PAGE }),
+  });
 
-  const handleSelect = (movie: Movie) => {
-    setSelectedMovie(movie);
-  }
-
-  const handleClose = () => {
-    setSelectedMovie(null);
-  }
-
-  useEffect(() => {
-    if (!query) return;
-
-    const getMovies = async () => {
-      try {
-        setLoading(true);
-        setError(false);
-
-        const data = await fetchMovies(query);
-
-        if (data.length === 0) {
-          toast.error('No movies found for your request.');
-        }
-
-        setMovies(data)
-      } catch (error) {
-        console.log(error);
-        
-        setError(true);
-      } finally {
-        setLoading(false);
-        }
-    }
-
-    getMovies();
-  }, [query])
+  const notes = data?.notes ?? [];
+  const totalPages = data?.totalPages ?? 0;
 
   return (
-    <>
-    <Toaster/>
-    <SearchBar onSubmit={handleSearch} />
-      {loading && <Loader />}
+    <div className={css.app}>
+      <header className={css.toolbar}>
+        {/* SearchBox буде тут */}
 
-      {error && !loading && <ErrorMessage/>}
-      
-      {movies.length > 0 && (
-    <MovieGrid movies={movies} onSelect={handleSelect}/>
-      )}
-      {selectedMovie && (
-        <MovieModal movie={selectedMovie} onClose={handleClose}/>
-      )}
-      </>
-  )
-};
+        {totalPages > 1 && (
+          <Pagination
+            totalPages={totalPages}
+            currentPage={page}
+            onPageChange={setPage}
+          />
+        )}
+
+        <button className={css.button}>Create note +</button>
+      </header>
+      {isModalOpen && (
+        <Modal onClose={() => setIsModalOpen(false)}>
+          <NoteForm onClose={() => setIsModalOpen(false)} />
+        </Modal>
+)}
+      {isLoading && <Loader />}
+      {isError && <ErrorMessage />}
+      {notes.length > 0 && <NoteList notes={notes} />}
+    </div>
+  );
+}
