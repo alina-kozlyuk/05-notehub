@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import css from './Pagination.module.css';
 import ReactPaginateModule from "react-paginate";
 import type { ComponentType } from "react";
