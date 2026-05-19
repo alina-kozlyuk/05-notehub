@@ -7,6 +7,9 @@ import css from "./App.module.css";
 import Pagination from "../../Pagination/Pagination";
 import NoteList from "../../NoteList/NoteList";
 import Modal from "../../Modal/Modal";
+import NoteForm from "../../NoteForm/NoteForm";
+import { useDebouncedCallback } from "use-debounce";
+import SearchBox from "../SearchBox/SearchBox";
 
 const PER_PAGE = 12;
 
@@ -23,10 +26,15 @@ export default function App() {
   const notes = data?.notes ?? [];
   const totalPages = data?.totalPages ?? 0;
 
+  const handleSearch = useDebouncedCallback((value: string) => {
+    setPage(1);
+    setSearch(value);
+  },500);
+
   return (
     <div className={css.app}>
       <header className={css.toolbar}>
-        {/* SearchBox буде тут */}
+        <SearchBox onSearch={handleSearch}/>
 
         {totalPages > 1 && (
           <Pagination
@@ -36,16 +44,20 @@ export default function App() {
           />
         )}
 
-        <button className={css.button}>Create note +</button>
+        <button className={css.button} onClick={() => setIsModalOpen(true)}>
+  Create note +
+</button>
       </header>
-      {isModalOpen && (
-        <Modal onClose={() => setIsModalOpen(false)}>
-          <NoteForm onClose={() => setIsModalOpen(false)} />
-        </Modal>
-)}
+
       {isLoading && <Loader />}
       {isError && <ErrorMessage />}
       {notes.length > 0 && <NoteList notes={notes} />}
+
+       {isModalOpen && (
+        <Modal onClose={() => setIsModalOpen(false)}>
+         <NoteForm onClose={() => setIsModalOpen(false)} />
+        </Modal>
+       )}
     </div>
   );
 }
